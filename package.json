@@ -1,6 +1,6 @@
 {
 	"name": "mysql-typebox",
-	"version": "1.0.3",
+	"version": "1.0.4",
 	"description": "Generate Typebox interfaces from MySQL database",
 	"bin": "generator.js",
 	"repository": "git@github.com:erwinstone/mysql-typebox.git",
