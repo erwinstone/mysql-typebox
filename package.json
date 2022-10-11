@@ -1,0 +1,29 @@
+{
+  "name": "mysql-typebox",
+  "version": "1.0.0",
+  "description": "Generate Typebox interfaces from MySQL database",
+  "bin": "generator.js",
+  "repository": "git@github.com:erwinstone/mysql-typebox.git",
+  "author": "Erwin Stone <erwinstone@pm.me>",
+  "license": "MIT",
+  "scripts": {
+    "build": "temon generator.ts --build generator.js --minify"
+  },
+	"devDependencies": {
+		"@antfu/eslint-config": "^0.27.0",
+		"@sinclair/typebox": "^0.24.44",
+		"@types/fs-extra": "^9.0.13",
+		"@types/node": "^18.8.4",
+		"clear-any-console": "^1.16.2",
+		"esbuild": "^0.15.10",
+		"eslint": "^8.25.0",
+		"fs-extra": "^10.1.0",
+		"nodemon": "^2.0.20",
+		"temon": "^1.1.0",
+		"typescript": "^4.8.4"
+	},
+	"dependencies": {
+		"knex": "^2.3.0",
+		"mysql2": "^2.3.3"
+	}
+}
