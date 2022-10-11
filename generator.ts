@@ -4,8 +4,9 @@
 import path from 'path'
 import fs from 'fs-extra'
 import knex from 'knex'
-import clear from 'clear-any-console'
-clear()
+
+// Cross platform clear console.
+process.stdout.write(process.platform === 'win32' ? '\x1B[2J\x1B[0f' : '\x1B[2J\x1B[3J\x1B[H')
 
 function getType(descType: Desc['Type']) {
   const type = descType.split('(')[0]
