@@ -86,6 +86,7 @@ export const ${table} = Type.Object({`
     console.log('Created:', dest)
     fs.outputFileSync(dest, content)
   }
+  await db.destroy()
 }
 
 (async () => {
