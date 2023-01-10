@@ -1,15 +1,33 @@
 #!/usr/bin/env node
-
+/* eslint-disable key-spacing */
 /* eslint-disable no-case-declarations */
+/* eslint-disable no-multi-spaces */
+
 import path from 'path'
 import fs from 'fs-extra'
 import knex from 'knex'
+import camelCase from 'camelcase'
 
 // Cross platform clear console.
 process.stdout.write(process.platform === 'win32' ? '\x1B[2J\x1B[0f' : '\x1B[2J\x1B[3J\x1B[H')
 
-function getType(descType: Desc['Type']) {
-  const type = descType.split('(')[0]
+const config = fs.readJSONSync(path.join(process.cwd(), 'mysql-typebox.json')) as Config
+if (config.folder && config.folder !== '')
+  fs.emptyDirSync(config.folder)
+
+const isCamelCase      = config.camelCase && config.camelCase === true
+const isNullish        = config.nullish && config.nullish === true
+const isRequiredString = config.requiredString && config.requiredString === true
+function nullable(type: string) {
+  if (isNullish)
+    return `Type.Optional(Type.Union([${type}, Type.Null()]))`
+  else
+    return `Type.Union([${type}, Type.Null()])`
+}
+
+function getType(descType: Desc['Type'], descNull: Desc['Null']) {
+  const type   = descType.split('(')[0]
+  const isNull = descNull === 'YES'
   switch (type) {
     case 'date':
     case 'datetime':
@@ -24,7 +42,12 @@ function getType(descType: Desc['Type']) {
     case 'longtext':
     case 'json':
     case 'decimal':
-      return 'Type.String()'
+      if (isNull)
+        return nullable('Type.String()')
+      else if (isRequiredString)
+        return 'Type.String({ minLength: 1 })'
+      else
+        return 'Type.String()'
     case 'tinyint':
     case 'smallint':
     case 'mediumint':
@@ -32,24 +55,25 @@ function getType(descType: Desc['Type']) {
     case 'bigint':
     case 'float':
     case 'double':
-      return 'Type.Number()'
+      const unsigned = descType.endsWith(' unsigned')
+      const numberType = unsigned ? 'Type.Number({ minimum: 0 })' : 'Type.Number()'
+      if (isNull)
+        return nullable(numberType)
+      else
+        return numberType
     case 'enum':
       const value = descType.replace('enum(', '').replace(')', '').replaceAll(',', ', ')
       return `Type.Unsafe<${value.replaceAll(', ', ' | ')}>({ type: 'string', enum: [${value}] })`
   }
 }
 
-const config = fs.readJSONSync(path.join(process.cwd(), 'mysql-typebox.json')) as Config
-if (config.folder && config.folder !== '')
-  fs.emptyDirSync(config.folder)
-
 async function generate(config: Config) {
   const db = knex({
     client: 'mysql2',
     connection: {
-      host: config.host,
-      port: config.port,
-      user: config.user,
+      host    : config.host,
+      port    : config.port,
+      user    : config.user,
       password: config.password,
       database: config.database,
     },
@@ -64,21 +88,25 @@ async function generate(config: Config) {
   if (config.ignore && config.ignore.length)
     tables = tables.filter(table => !config.ignore.includes(table))
 
-  for (const table of tables) {
+  for (let table of tables) {
     const d = await db.raw(`DESC ${table}`)
     const describes = d[0] as Desc[]
+    if (isCamelCase)
+      table = camelCase(table)
     let content = `import { Type } from '@sinclair/typebox'
+import type { Static } from '@sinclair/typebox'
 
 export const ${table} = Type.Object({`
     for (const desc of describes) {
-      const field = desc.Field
-      const type = getType(desc.Type)
-      const isNull = desc.Null === 'YES'
+      const field = isCamelCase ? camelCase(desc.Field) : desc.Field
+      const type = getType(desc.Type, desc.Null)
       content = `${content}
-  ${field}: ${isNull ? `Type.Optional(Type.Union([${type}, Type.Null()]))` : `${type}`},`
+  ${field}: ${type},`
     }
     content = `${content}
 })
+
+export type ${camelCase(`${table}Type`)} = Static<typeof ${table}>
 `
     const dir = config.folder && config.folder !== '' ? config.folder : '.'
     const file = config.suffix && config.suffix !== '' ? `${table}.${config.suffix}.ts` : `${table}.ts`
@@ -109,4 +137,7 @@ interface Config {
   ignore?: string[]
   folder?: string
   suffix?: string
+  camelCase?: boolean
+  nullish?: boolean
+  requiredString?: boolean
 }

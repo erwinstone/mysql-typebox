@@ -27,12 +27,13 @@ Create a file named `mysql-typebox.json` and fill it as follows (adjust to your 
 Create User table:
 
 ```sql
-CREATE TABLE `User` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `user` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `username` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `profilePicture` varchar(255) DEFAULT NULL,
+  `profile_picture` varchar(255) DEFAULT NULL,
+  `role` enum('admin','user') NOT NULL,
   PRIMARY KEY (`id`)
 );
 ```
@@ -42,18 +43,22 @@ Then run the command:
 npx mysql-typebox
 ```
 
-The above command will create a `User.ts` file with the following contents:
+The above command will create a `user.ts` file with the following contents:
 
 ```typescript
 import { Type } from '@sinclair/typebox'
+import type { Static } from '@sinclair/typebox'
 
-export const User = Type.Object({
+export const user = Type.Object({
   id: Type.Number(),
   name: Type.String(),
   username: Type.String(),
   password: Type.String(),
-  profilePicture: Type.Optional(Type.Union([Type.String(), Type.Null()])),
+  profile_picture: Type.Union([Type.String(), Type.Null()]),
+  role: Type.Unsafe<'admin' | 'user'>({ type: 'string', enum: ['admin', 'user'] }),
 })
+
+export type userType = Static<typeof user>
 ```
 ## Config
 
@@ -68,7 +73,10 @@ export const User = Type.Object({
   "tables": ["User", "Log"],
   "ignore": ["Log"],
   "folder": "@typebox",
-  "suffix": "table"
+  "suffix": "table",
+  "camelCase": false,
+  "nullish": false,
+  "requiredString": false
 }
 ```
 
@@ -77,4 +85,7 @@ export const User = Type.Object({
 | tables | Filter the tables to include only those specified. |
 | ignore | Filter the tables to exclude those specified. |
 | folder | Specify the output directory. |
-| suffix | Suffix to the name of a generated file. (eg: `User.table.ts`) |
+| suffix | Suffix to the name of a generated file. (eg: `user.table.ts`) |
+| camelCase | Convert all table names and their properties to camelcase. (eg: `profile_picture` becomes `profilePicture`) |
+| nullish | Set schema as `nullish`. Nullish schemas will accept both `undefined` and `null` |
+| requiredString | Add `minLength: 1` for string schema |
