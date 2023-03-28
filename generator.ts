@@ -3,7 +3,7 @@
 /* eslint-disable no-case-declarations */
 /* eslint-disable no-multi-spaces */
 
-import path from 'path'
+import path from 'node:path'
 import fs from 'fs-extra'
 import knex from 'knex'
 import camelCase from 'camelcase'
@@ -79,7 +79,7 @@ async function generate(config: Config) {
     },
   })
 
-  const t = await db.raw('SELECT table_name FROM information_schema.tables WHERE table_schema = ?', [config.database])
+  const t = await db.raw('SELECT table_name as table_name FROM information_schema.tables WHERE table_schema = ?', [config.database])
   let tables = t[0].map((row: any) => row.table_name).filter((table: string) => !table.startsWith('knex_')).sort() as Tables
 
   if (config.tables && config.tables.length)
@@ -108,8 +108,8 @@ export const ${table} = Type.Object({`
 
 export type ${camelCase(`${table}Type`)} = Static<typeof ${table}>
 `
-    const dir = config.folder && config.folder !== '' ? config.folder : '.'
-    const file = config.suffix && config.suffix !== '' ? `${table}.${config.suffix}.ts` : `${table}.ts`
+    const dir = (config.folder && config.folder !== '') ? config.folder : '.'
+    const file = (config.suffix && config.suffix !== '') ? `${table}.${config.suffix}.ts` : `${table}.ts`
     const dest = path.join(dir, file)
     console.log('Created:', dest)
     fs.outputFileSync(dest, content)
