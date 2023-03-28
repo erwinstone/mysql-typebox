@@ -26,7 +26,7 @@ function nullable(type: string) {
 }
 
 function getType(descType: Desc['Type'], descNull: Desc['Null']) {
-  const type   = descType.split('(')[0]
+  const type   = descType.split('(')[0].split(' ')[0]
   const isNull = descNull === 'YES'
   switch (type) {
     case 'date':
